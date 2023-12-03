@@ -31,4 +31,12 @@ public interface UserService extends IService<User> {
      * @return 登录用户信息
      */
     User userLogin(String userAccount, String userPassword, HttpServletRequest request);
+
+
+    /**
+     * 用户信息脱敏
+     * @param user 未脱敏用户
+     * @return 脱敏用户
+     */
+    User getSafetyUser(User user);
 }

@@ -7,13 +7,18 @@ import com.example.usercenter.service.UserService;
 import com.example.usercenter.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.example.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
 * @author Ghost
@@ -33,10 +38,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     private static final String DEFAULT_SALT = "GHOST";
 
-    /**
-     * 用户登录态键
-     */
-    private static final String User_LOGIN_STATE = "userLoginState";
 
     /**
      * 用户注册校验
@@ -141,6 +142,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
 
         // 3、返回用户信息（脱敏）
+        User safetyUser = getSafetyUser(user);
+
+        // 4、记录用户的登录态
+        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+
+        return safetyUser;// 返回脱敏后的用户
+    }
+
+    /**
+     * 用户信息脱敏
+     * @param user 未脱敏用户
+     * @return 脱敏用户
+     */
+    public User getSafetyUser(User user) {
         User safetyUser = new User();
         safetyUser.setId(user.getId());
         safetyUser.setUsername(user.getUsername());
@@ -152,11 +167,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setUserStatus(user.getUserStatus());
         safetyUser.setCreateTime(user.getCreateTime());
         safetyUser.setIsDelete(user.getIsDelete());
-
-        // 4、记录用户的登录态
-        request.getSession().setAttribute(User_LOGIN_STATE, safetyUser);
-
-        return safetyUser;// 返回脱敏后的用户
+        safetyUser.setUserRole(user.getUserRole());
+        return safetyUser;
     }
 }
 
