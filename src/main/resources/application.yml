@@ -12,6 +12,8 @@ spring:
 # 应用服务 WEB 访问端口
 server:
   port: 8080
+  servlet:
+    context-path: /api
 
 mybatis-plus:
   global-config:

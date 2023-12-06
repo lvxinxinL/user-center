@@ -77,11 +77,29 @@ public class UserController {
     }
 
     /**
+     * 获取当前用户信息
+     * @param request HttpServletRequest
+     * @return 当前登录用户信息
+     */
+    @GetMapping("/current")
+    public User getCurrentUser(HttpServletRequest request) {
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);// 获取用户登录态
+        User currentUser = (User) userObj;
+        Long userId = currentUser.getId();
+
+        log.info("获取当前登录用户信息：{}", userId);
+
+        // TODO 校验用户是否合法
+        User user = userService.getById(userId);
+        return userService.getSafetyUser(user);
+    }
+
+    /**
      * 用户管理：查询用户（模糊匹配）
      * @param username 用户名
      * @return 查询到的用户列表
      */
-    @GetMapping("/select")
+    @GetMapping("/search")
     public List<User> searchUser(String username, HttpServletRequest request) {
         log.info("根据用户名查找用户：{}", username);
         if(!isAdmin(request)) {// 如果不是管理员，不能查询用户

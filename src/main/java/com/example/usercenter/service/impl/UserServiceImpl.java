@@ -156,6 +156,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * @return 脱敏用户
      */
     public User getSafetyUser(User user) {
+        if(user == null) {
+            return null;
+        }
         User safetyUser = new User();
         safetyUser.setId(user.getId());
         safetyUser.setUsername(user.getUsername());
