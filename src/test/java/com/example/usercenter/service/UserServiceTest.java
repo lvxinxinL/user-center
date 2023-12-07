@@ -52,7 +52,7 @@ class UserServiceTest {
         String userAccount = "lucky";
         String userPassword = "";
         String checkPassword = "12345678";
-        String planetCode = "12345678";
+        String planetCode = "1";
         long result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
         Assertions.assertEquals(-1, result);
 
@@ -86,7 +86,7 @@ class UserServiceTest {
         Assertions.assertEquals(-1, result);
 
         // 正常情况
-        userAccount = "Jackson";
+        userAccount = "Jack";
         userPassword = "12345678";
         checkPassword = "12345678";
         result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
