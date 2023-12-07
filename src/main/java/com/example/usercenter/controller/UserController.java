@@ -57,6 +57,12 @@ public class UserController {
     }
 
 
+    /**
+     * 用户登录
+     * @param userLoginRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/login")
     public User userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if(userLoginRequest == null) {
@@ -74,6 +80,20 @@ public class UserController {
         }
 
         return userService.userLogin(userAccount, userPassword, request);
+    }
+
+
+    /**
+     * 用户注销
+     * @param request
+     * @return 退出登录成功返回 1
+     */
+    @PostMapping("/logout")
+    public Integer userLogout(HttpServletRequest request) {
+         if(request == null) {
+             return null;
+         }
+         return userService.userLogout(request);
     }
 
     /**
@@ -101,7 +121,7 @@ public class UserController {
      */
     @GetMapping("/search")
     public List<User> searchUser(String username, HttpServletRequest request) {
-        log.info("根据用户名查找用户：{}", username);
+        log.info("根据用户名查找用户 / 加载用户列表");
         if(!isAdmin(request)) {// 如果不是管理员，不能查询用户
             return new ArrayList<>();
         }
@@ -142,6 +162,7 @@ public class UserController {
      * @return 是否为管理员
      */
     private boolean isAdmin(HttpServletRequest request) {
+        log.info("判断用户是否为管理员");
         // 仅管理员可查询用户——鉴权
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User user = (User) userObj;

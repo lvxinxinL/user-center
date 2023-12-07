@@ -39,4 +39,11 @@ public interface UserService extends IService<User> {
      * @return 脱敏用户
      */
     User getSafetyUser(User user);
+
+    /**
+     * 用户退出登录
+     * @param request
+     * @return
+     */
+    int userLogout(HttpServletRequest request);
 }

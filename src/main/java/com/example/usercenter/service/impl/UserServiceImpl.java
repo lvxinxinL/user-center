@@ -7,14 +7,11 @@ import com.example.usercenter.service.UserService;
 import com.example.usercenter.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -145,7 +142,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         User safetyUser = getSafetyUser(user);
 
         // 4、记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+        request.getSession().setAttribute(USER_LOGIN_STATE, user);
 
         return safetyUser;// 返回脱敏后的用户
     }
@@ -171,7 +168,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setCreateTime(user.getCreateTime());
         safetyUser.setIsDelete(user.getIsDelete());
         safetyUser.setUserRole(user.getUserRole());
+        safetyUser.setPlanetCode(user.getPlanetCode());
         return safetyUser;
+    }
+
+    /**
+     * 用户退出登录
+     * @param request
+     * @return
+     */
+    public int userLogout(HttpServletRequest request) {
+        // 移除登录态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return 1;
     }
 }
 
