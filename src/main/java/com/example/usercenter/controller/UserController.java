@@ -2,6 +2,7 @@ package com.example.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.usercenter.common.BaseResponse;
+import com.example.usercenter.common.ErrorCode;
 import com.example.usercenter.common.ResultUtils;
 import com.example.usercenter.model.domain.User;
 import com.example.usercenter.model.request.UserLoginRequest;
@@ -40,7 +41,8 @@ public class UserController {
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if(userRegisterRequest == null) {
-            return null;
+//            return null;
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
         }
 
         log.info("用户请求注册：{}", userRegisterRequest.getUserAccount());

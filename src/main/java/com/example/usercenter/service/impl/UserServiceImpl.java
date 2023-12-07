@@ -2,6 +2,8 @@ package com.example.usercenter.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.usercenter.common.ErrorCode;
+import com.example.usercenter.exception.BusinessException;
 import com.example.usercenter.model.domain.User;
 import com.example.usercenter.service.UserService;
 import com.example.usercenter.mapper.UserMapper;
@@ -48,32 +50,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 1、校验
         // 用户的账户、密码、确认密码非空
         if(StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
         }
         // 账户长度不小于 4 位
         if(userAccount.length() < 4) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号长度过短");
         }
         // 密码不小于 8 位
         if(userPassword.length() < 8 || checkPassword.length() < 8) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度过短");
         }
 
         // 星球编号不大于 5 位
         if(planetCode.length() > 5) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "星球编号过长");
         }
 
         // 账户不包含特殊字符
         String regEx="[`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
         Matcher matcher = Pattern.compile(regEx).matcher(userAccount);
         if(matcher.find()) {// 如果匹配到了特殊字符就直接返回 -1
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号包含特殊字符");
         }
 
         // 密码和校验密码相同
         if(!userPassword.equals(checkPassword)) {
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入密码不一致");
         }
 
         // 账号不能重复
@@ -83,7 +85,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         Long result = userMapper.selectCount(queryWrapper);
         if(result > 0) {
             log.info("账户重复，注册失败");
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账户重复");
         }
 
         // 星球编号不能重复
@@ -92,7 +94,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         result = userMapper.selectCount(queryWrapper);
         if(result > 0) {
             log.info("星球编号重复，注册失败");
-            return -1;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "星球编号重复");
         }
 
         // 2、对用户密码进行加密
