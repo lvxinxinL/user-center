@@ -18,7 +18,10 @@ public class GlobalExceptionHandler {
 
     /**
      * 处理 BusinessException 类型的异常
+<<<<<<< HEAD
      *
+=======
+>>>>>>> f2235fa (Restore the previous code)
      * @param e
      * @return
      */
