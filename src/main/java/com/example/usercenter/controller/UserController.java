@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.usercenter.common.BaseResponse;
 import com.example.usercenter.common.ErrorCode;
 import com.example.usercenter.common.ResultUtils;
+import com.example.usercenter.exception.BusinessException;
 import com.example.usercenter.model.domain.User;
 import com.example.usercenter.model.request.UserLoginRequest;
 import com.example.usercenter.model.request.UserRegisterRequest;
@@ -42,7 +43,8 @@ public class UserController {
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if(userRegisterRequest == null) {
 //            return null;
-            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+//            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
         log.info("用户请求注册：{}", userRegisterRequest.getUserAccount());
@@ -54,7 +56,7 @@ public class UserController {
 
         // 校验登录信息是否为空（Controller 也要进行校验，单纯的请求参数本身的校验）
         if(StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
         long result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
@@ -71,7 +73,7 @@ public class UserController {
     @PostMapping("/login")
     public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if(userLoginRequest == null) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
         log.info("用户请求登录：{}", userLoginRequest.getUserAccount());
@@ -81,7 +83,7 @@ public class UserController {
 
         // 校验登录信息是否为空（Controller 也要进行校验，单纯的请求参数本身的校验）
         if(StringUtils.isAnyBlank(userAccount, userPassword)) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
         User user = userService.userLogin(userAccount, userPassword, request);
@@ -97,7 +99,7 @@ public class UserController {
     @PostMapping("/logout")
     public BaseResponse<Integer> userLogout(HttpServletRequest request) {
         if (request == null) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         int result = userService.userLogout(request);
         return ResultUtils.success(result);
@@ -131,7 +133,7 @@ public class UserController {
     public BaseResponse<List<User>> searchUser(String username, HttpServletRequest request) {
         log.info("根据用户名查找用户 / 加载用户列表");
         if(!isAdmin(request)) {// 如果不是管理员，不能查询用户
-            return null;
+            throw new BusinessException(ErrorCode.NO_AUTH);
         }
 
         // 查询构造器
@@ -155,11 +157,11 @@ public class UserController {
     public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
         log.info("根据用户 id 删除用户：{}", id);
         if(!isAdmin(request)) {// 如果不是管理员，不能删除用户
-            return null;
+            throw new BusinessException(ErrorCode.NO_AUTH);
         }
 
         if(id <= 0) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
         boolean result = userService.removeById(id);// 根据 id 逻辑删除
