@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -101,11 +100,11 @@ public class UserController {
      */
     @PostMapping("/logout")
     public BaseResponse<Integer> userLogout(HttpServletRequest request) {
-         if(request == null) {
-             return null;
-         }
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
         int result = userService.userLogout(request);
-         return ResultUtils.success(result);
+        return ResultUtils.success(result);
     }
 
     /**
@@ -173,6 +172,7 @@ public class UserController {
 
     /**
      * 判断用户是否为管理员
+     *
      * @param request 登录态
      * @return 是否为管理员
      */

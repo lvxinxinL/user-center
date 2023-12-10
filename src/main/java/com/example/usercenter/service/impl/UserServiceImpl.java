@@ -63,6 +63,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         // 星球编号不大于 5 位
         if(planetCode.length() > 5) {
+            log.info("星球编号过长");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "星球编号过长");
         }
 
@@ -84,7 +85,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 //        this.selectCount(queryWrapper);// this 是 UserServiceImpl，继承了ServiceImpl，可以使用里面的方法
         Long result = userMapper.selectCount(queryWrapper);
         if(result > 0) {
-            log.info("账户重复，注册失败");
+            log.info("账号重复，注册失败");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
         }
 
@@ -126,11 +127,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if(StringUtils.isAnyBlank(userAccount, userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 账户长度不小于 4 位
+        // 账号长度不小于 4 位
         if(userAccount.length() < 4) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号长度过短");
         }
-        // 密码就不小于 8 位
+        // 密码不小于 8 位
         if(userPassword.length() < 8) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度过短");
         }
@@ -172,7 +173,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     public User getSafetyUser(User user) {
         if(user == null) {
-            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User safetyUser = new User();
         safetyUser.setId(user.getId());
