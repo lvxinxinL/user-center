@@ -9,9 +9,10 @@ package com.example.usercenter.common;
 public class ResultUtils {
     /**
      * 成功
+     *
      * @param data 请求的数据
-     * @return
      * @param <T>
+     * @return
      */
     public static <T> BaseResponse<T> success(T data) {
         return new BaseResponse(0, data, "ok");
@@ -19,9 +20,9 @@ public class ResultUtils {
 
     /**
      * 失败：支持传入 ErrorCode
+     *
      * @param errorCode 错误码
      * @return
-     * @param <T>
      */
     public static BaseResponse error(ErrorCode errorCode) {
         return new BaseResponse(errorCode);
@@ -29,6 +30,7 @@ public class ResultUtils {
 
     /**
      * 失败：支持自定义 code、message、description
+     *
      * @param code
      * @param message
      * @param description
@@ -40,6 +42,7 @@ public class ResultUtils {
 
     /**
      * 失败：支持自定义 description
+     *
      * @param errorCode
      * @param description
      * @return
@@ -50,12 +53,13 @@ public class ResultUtils {
 
     /**
      * 失败：支持自定义 message、description
+     *
      * @param errorCode
      * @param message
      * @param description
      * @return
      */
-    public static BaseResponse error(ErrorCode errorCode, String message,String description) {
+    public static BaseResponse error(ErrorCode errorCode, String message, String description) {
         return new BaseResponse(errorCode.getCode(), null, message, description);
     }
 }

@@ -24,9 +24,9 @@ public class BaseResponse<T> {
         this.description = description;
     }
 
-   public BaseResponse(int code, T data) {
+    public BaseResponse(int code, T data) {
         this(code, data, "", "");
-   }
+    }
     public BaseResponse(int code, T data, String msg) {
         this(code, data, msg, "");
     }

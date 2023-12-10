@@ -50,7 +50,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 1、校验
         // 用户的账户、密码、确认密码非空
         if(StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 账户长度不小于 4 位
         if(userAccount.length() < 4) {
@@ -108,7 +108,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setPlanetCode(planetCode);
         boolean saveResult = this.save(user);
         if(!saveResult) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "用户注册失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "系统异常，注册失败");
         }
         return user.getId();
     }
@@ -154,7 +154,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 用户不存在或账户密码不匹配
         if(user == null) {
             log.info("登录失败");
-            throw new BusinessException(ErrorCode.NULL_ERROR, "用户不存在或账户密码不匹配");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或账号密码不匹配");
         }
 
         // 3、返回用户信息（脱敏）

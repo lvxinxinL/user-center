@@ -44,8 +44,9 @@ public class UserController {
         if(userRegisterRequest == null) {
 //            return null;
 //            return ResultUtils.error(ErrorCode.PARAMS_ERROR);
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
+
 
         log.info("用户请求注册：{}", userRegisterRequest.getUserAccount());
 
@@ -56,7 +57,8 @@ public class UserController {
 
         // 校验登录信息是否为空（Controller 也要进行校验，单纯的请求参数本身的校验）
         if(StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//            return null;
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
 
         long result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
@@ -92,7 +94,7 @@ public class UserController {
 
 
     /**
-     * 用户注销
+     * 用户退出登录
      * @param request
      * @return 退出登录成功返回 1
      */
