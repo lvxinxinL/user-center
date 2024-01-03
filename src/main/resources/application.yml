@@ -9,6 +9,9 @@ spring:
   # session失效时间
   session:
     timeout: 86400
+  # 激活生产环境配置
+  profiles:
+    active: prod
 # 应用服务 WEB 访问端口
 server:
   port: 8080
