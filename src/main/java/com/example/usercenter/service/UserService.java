@@ -4,6 +4,7 @@ import com.example.usercenter.model.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author Ghost
@@ -47,4 +48,11 @@ public interface UserService extends IService<User> {
      * @return
      */
     int userLogout(HttpServletRequest request);
+
+    /**
+     * 根据标签搜索用户
+     * @param tagNameList 用户的标签列表
+     * @return 匹配该标签列表的用户列表
+     */
+    List<User> searchUsersByTags(List<String> tagNameList);
 }

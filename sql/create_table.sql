@@ -1,4 +1,3 @@
-create database user_center;
 -- auto-generated definition
 create table user
 (
@@ -17,7 +16,7 @@ create table user
     is_delete     tinyint      default 0                 null comment '逻辑删除',
     is_valid      tinyint      default 0                 null,
     user_role     int          default 0                 not null comment '角色',
-    planet_code   varchar(512)                           null comment '星球编号'
+    planet_code   varchar(512)                           null comment '星球编号',
+    tags          varchar(1024)                          null comment '标签 json 列表'
 )
     comment '用户';
-

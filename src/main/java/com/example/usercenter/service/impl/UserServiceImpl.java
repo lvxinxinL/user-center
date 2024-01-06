@@ -10,12 +10,15 @@ import com.example.usercenter.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.example.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
@@ -188,6 +191,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setIsDelete(user.getIsDelete());
         safetyUser.setUserRole(user.getUserRole());
         safetyUser.setPlanetCode(user.getPlanetCode());
+        safetyUser.setTags(user.getTags());
         return safetyUser;
     }
 
@@ -200,6 +204,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return 1;
+    }
+
+    /**
+     * 根据标签搜索用户
+     * @param tagNameList 用户的标签列表
+     * @return 匹配该标签列表的用户列表
+     */
+    public List<User> searchUsersByTags(List<String> tagNameList) {
+        // 1. 判断参数是否为空
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 2. 构造查询器
+        QueryWrapper<User> queryWrapper = new QueryWrapper();
+        for (String tagName : tagNameList) {
+            queryWrapper = queryWrapper.like("tags", tagName);
+        }
+
+        // 3. 根据标签列表查找用户
+        List<User> userList = userMapper.selectList(queryWrapper);
+
+        // 4. 返回脱敏后的用户列表
+        return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
     }
 }
 

@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -92,4 +94,14 @@ class UserServiceTest {
         result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
         Assertions.assertTrue(result > 0);
     }
+
+    @Test
+    public void testSearchUsersByTags() {
+        List<String> tagNameList = new ArrayList<>();
+        tagNameList.add("java");
+        tagNameList.add("python");
+        List<User> userList = userService.searchUsersByTags(tagNameList);
+        Assertions.assertNotNull(userList);
+    }
+
 }
