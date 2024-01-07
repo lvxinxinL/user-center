@@ -1,5 +1,6 @@
 package com.example.usercenter.service.impl;
 
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.usercenter.common.ErrorCode;
@@ -7,6 +8,8 @@ import com.example.usercenter.exception.BusinessException;
 import com.example.usercenter.model.domain.User;
 import com.example.usercenter.service.UserService;
 import com.example.usercenter.mapper.UserMapper;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,7 @@ import org.springframework.util.DigestUtils;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -217,7 +221,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
-        // 2. 构造查询器
+        /**
+         * 方式一：使用 SQL 查询
+         */
+        /*// 2. 构造查询器
         QueryWrapper<User> queryWrapper = new QueryWrapper();
         for (String tagName : tagNameList) {
             queryWrapper = queryWrapper.like("tags", tagName);
@@ -228,6 +235,31 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         // 4. 返回脱敏后的用户列表
         return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
+    }*/
+
+        /**
+         * 方式二：使用内存查询
+         */
+        // 1. 查询所有用户
+        QueryWrapper<User> queryWrapper = new QueryWrapper();
+        List<User> userList = userMapper.selectList(queryWrapper);
+
+        Gson gson = new Gson();
+        return userList.stream().filter(user -> {
+            // 2. 遍历用户取出标签信息
+            String tagsStr = user.getTags();
+            if (StringUtils.isEmpty(tagsStr)) {
+                return false;
+            }
+            // 3. 在内存中判断是否包含要求标签
+            Set<String> tempTagsNameSet = gson.fromJson(tagsStr, new TypeToken<Set<String>>(){}.getType());
+            for (String tagName : tagNameList) {
+                if (!tempTagsNameSet.contains(tagName)) {// 用户标签不包含所要求的标签
+                    return false;
+                }
+            }
+            return true;
+        }).map(this::getSafetyUser).collect(Collectors.toList());
     }
 }
 

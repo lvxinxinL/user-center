@@ -9,6 +9,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -97,9 +98,7 @@ class UserServiceTest {
 
     @Test
     public void testSearchUsersByTags() {
-        List<String> tagNameList = new ArrayList<>();
-        tagNameList.add("java");
-        tagNameList.add("python");
+        List<String> tagNameList = Arrays.asList("java");
         List<User> userList = userService.searchUsersByTags(tagNameList);
         Assertions.assertNotNull(userList);
     }
