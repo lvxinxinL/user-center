@@ -211,7 +211,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     /**
-     * 根据标签搜索用户
+     * 根据标签搜索用户（内存过滤）
      * @param tagNameList 用户的标签列表
      * @return 匹配该标签列表的用户列表
      */
@@ -221,25 +221,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
 
-        /**
-         * 方式一：使用 SQL 查询
-         */
-        /*// 2. 构造查询器
-        QueryWrapper<User> queryWrapper = new QueryWrapper();
-        for (String tagName : tagNameList) {
-            queryWrapper = queryWrapper.like("tags", tagName);
-        }
-
-        // 3. 根据标签列表查找用户
-        List<User> userList = userMapper.selectList(queryWrapper);
-
-        // 4. 返回脱敏后的用户列表
-        return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
-    }*/
-
-        /**
-         * 方式二：使用内存查询
-         */
         // 1. 查询所有用户
         QueryWrapper<User> queryWrapper = new QueryWrapper();
         List<User> userList = userMapper.selectList(queryWrapper);
@@ -260,6 +241,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             }
             return true;
         }).map(this::getSafetyUser).collect(Collectors.toList());
+    }
+
+
+    /**
+     * 根据标签搜索用户（SQL 查询）
+     * @param tagNameList 用户的标签列表
+     * @return 匹配该标签列表的用户列表
+     */
+    @Deprecated
+    private List<User> searchUsersByTagsBySQL(List<String> tagNameList) {
+        // 1. 判断参数是否为空
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 2. 构造查询器
+        QueryWrapper<User> queryWrapper = new QueryWrapper();
+        for (String tagName : tagNameList) {
+            queryWrapper = queryWrapper.like("tags", tagName);
+        }
+
+        // 3. 根据标签列表查找用户
+        List<User> userList = userMapper.selectList(queryWrapper);
+
+        // 4. 返回脱敏后的用户列表
+        return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
     }
 }
 
