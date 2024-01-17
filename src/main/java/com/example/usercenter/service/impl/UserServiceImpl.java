@@ -12,18 +12,21 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.ehcache.impl.internal.resilience.RobustResilienceStrategy;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.nio.BufferUnderflowException;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.example.usercenter.constant.UserConstant.ADMIN_ROLE;
 import static com.example.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
@@ -241,6 +244,77 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             }
             return true;
         }).map(this::getSafetyUser).collect(Collectors.toList());
+    }
+
+    /**
+     * 获取当前登录用户
+     * @param request
+     * @return
+     */
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 判断用户登录态
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (userObj == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+        return (User) userObj;
+    }
+
+    /**
+     * 更新用户信息
+     * @param user 要更新的用户
+     * @param loginUser 当前登录用户
+     * @return
+     */
+    @Override
+    public int updateUser(User user, User loginUser) {
+        // 判断权限：只有管理员和自己可以修改用户信息
+        if (user == null || loginUser == null || !isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        long userId = user.getId();
+        if (userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 管理员：更新任意用户的信息
+        // 普通用户：只允许更新自己的信息
+        if (!isAdmin(loginUser) && userId == loginUser.getId()) {
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        User oldUser = userMapper.selectById(userId);
+        if (oldUser == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        return userMapper.updateById(user);
+    }
+
+    /**
+     * 判断用户是否为管理员
+     *
+     * @param loginUser 当前登录用户
+     * @return 是否为管理员
+     */
+    public boolean isAdmin(User loginUser) {
+        return loginUser != null && loginUser.getUserRole() == ADMIN_ROLE;
+    }
+
+    /**
+     * 判断用户是否为管理员
+     *
+     * @param request 登录态
+     * @return 是否为管理员
+     */
+    @Override
+    public boolean isAdmin(HttpServletRequest request) {
+        log.info("判断用户是否为管理员");
+        // 仅管理员可查询用户——鉴权
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User user = (User) userObj;
+        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 
 

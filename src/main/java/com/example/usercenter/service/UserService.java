@@ -6,6 +6,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+import static com.example.usercenter.constant.UserConstant.ADMIN_ROLE;
+import static com.example.usercenter.constant.UserConstant.USER_LOGIN_STATE;
+
 /**
 * @author Ghost
 * @description 针对表【user(用户)】的数据库操作Service
@@ -55,4 +58,36 @@ public interface UserService extends IService<User> {
      * @return 匹配该标签列表的用户列表
      */
     List<User> searchUsersByTags(List<String> tagNameList);
+
+    /**
+     * 获取当前登录用户
+     * @param request
+     * @return
+     */
+    User getLoginUser(HttpServletRequest request);
+
+    /**
+     * 修改用户信息
+     * @param user
+     * @param loginUser
+     * @return
+     */
+    int updateUser(User user, User loginUser);
+
+
+    /**
+     * 判断用户是否为管理员
+     *
+     * @param request 登录态
+     * @return 是否为管理员
+     */
+    boolean isAdmin(HttpServletRequest request);
+
+    /**
+     * 判断用户是否为管理员
+     *
+     * @param loginUser 当前登录用户
+     * @return 是否为管理员
+     */
+    boolean isAdmin(User loginUser);
 }

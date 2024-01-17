@@ -32,7 +32,8 @@ import static com.example.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 @RestController
 @RequestMapping("/user")
 @Slf4j
-@CrossOrigin(origins = { "http://localhost:5173/" })
+//@CrossOrigin(origins = { "http://localhost:5173/" })
+@CrossOrigin
 public class UserController {
 
     @Resource
@@ -141,7 +142,7 @@ public class UserController {
     @GetMapping("/search")
     public BaseResponse<List<User>> searchUser(String username, HttpServletRequest request) {
         log.info("根据用户名查找用户 / 加载用户列表");
-        if(!isAdmin(request)) {// 如果不是管理员，不能查询用户
+        if(!userService.isAdmin(request)) {// 如果不是管理员，不能查询用户
             throw new BusinessException(ErrorCode.NO_AUTH);
         }
 
@@ -172,6 +173,25 @@ public class UserController {
     }
 
     /**
+     * 修改用户信息
+     * @param user 要修改的用户信息
+     * @param request
+     * @return 是否修改成功
+     */
+    @PostMapping("/update")
+    public BaseResponse<Integer> updateUser(@RequestBody User user, HttpServletRequest request) {
+        // 判断参数是否为空
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 获取当前用户信息
+        User loginUser = userService.getLoginUser(request);
+        // 修改用户信息
+        int result = userService.updateUser(user, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    /**
      * 用户管理：根据 id 删除用户
      * @param id 用户 id
      * @return 是否删除成功
@@ -179,29 +199,13 @@ public class UserController {
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
         log.info("根据用户 id 删除用户：{}", id);
-        if(!isAdmin(request)) {// 如果不是管理员，不能删除用户
+        if(!userService.isAdmin(request)) {// 如果不是管理员，不能删除用户
             throw new BusinessException(ErrorCode.NO_AUTH);
         }
-
         if(id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-
         boolean result = userService.removeById(id);// 根据 id 逻辑删除
         return ResultUtils.success(result);
-    }
-
-    /**
-     * 判断用户是否为管理员
-     *
-     * @param request 登录态
-     * @return 是否为管理员
-     */
-    private boolean isAdmin(HttpServletRequest request) {
-        log.info("判断用户是否为管理员");
-        // 仅管理员可查询用户——鉴权
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) userObj;
-        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 }
