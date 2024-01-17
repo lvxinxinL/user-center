@@ -119,6 +119,9 @@ public class UserController {
     @GetMapping("/current")
     public BaseResponse<User> getCurrentUser(HttpServletRequest request) {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);// 获取用户登录态
+        if (userObj == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
         User currentUser = (User) userObj;
         Long userId = currentUser.getId();
 
