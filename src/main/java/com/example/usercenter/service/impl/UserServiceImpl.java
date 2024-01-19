@@ -272,21 +272,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      */
     @Override
     public int updateUser(User user, User loginUser) {
-        // 判断权限：只有管理员和自己可以修改用户信息
-        if (user == null || loginUser == null || !isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH);
-        }
         long userId = user.getId();
         if (userId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 如果用户没有传递任何需要更新的值，直接报错，不执行 UPDATE 语句
+        if(user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
         // 管理员：更新任意用户的信息
         // 普通用户：只允许更新自己的信息
-        if (!isAdmin(loginUser) && userId == loginUser.getId()) {
+        if (!isAdmin(loginUser) && userId != loginUser.getId()) {
             throw new BusinessException(ErrorCode.NO_AUTH);
         }
         User oldUser = userMapper.selectById(userId);
-        if (oldUser == null) {
+         if (oldUser == null) {
             throw new BusinessException(ErrorCode.NULL_ERROR);
         }
         return userMapper.updateById(user);
