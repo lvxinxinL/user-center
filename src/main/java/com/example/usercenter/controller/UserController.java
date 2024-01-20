@@ -1,6 +1,7 @@
 package com.example.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.usercenter.common.BaseResponse;
 import com.example.usercenter.common.ErrorCode;
 import com.example.usercenter.common.ResultUtils;
@@ -97,7 +98,6 @@ public class UserController {
         return ResultUtils.success(user);
     }
 
-
     /**
      * 用户退出登录
      * @param request
@@ -156,6 +156,20 @@ public class UserController {
         // 返回脱敏后的用户数据
         List<User> list = userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
         return ResultUtils.success(list);
+    }
+
+
+    /**
+     * 用户推荐
+     * @param request
+     * @return 用户列表
+     */
+    @GetMapping("/recommend")
+    public BaseResponse<Page<User>> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
+        log.info("推荐用户列表");
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        Page<User> userList = userService.page(new Page<>((pageNum - 1) * pageSize, pageSize), queryWrapper);// 查询所有用户
+        return ResultUtils.success(userList);
     }
 
     /**
