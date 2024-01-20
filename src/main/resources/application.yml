@@ -10,7 +10,7 @@ spring:
     host: 127.0.0.1
     port: 6379
     password: root@csu
-    database: 0
+    database: 1
   # session失效时间（minute）
   session:
     timeout: 86400
