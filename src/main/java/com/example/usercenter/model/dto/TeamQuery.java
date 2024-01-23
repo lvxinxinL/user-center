@@ -18,13 +18,22 @@ public class TeamQuery extends PageRequest {
     /**
      * id
      */
-    @TableId(type = IdType.AUTO)
     private Long id;
+
+    /**
+     * 查询关键词（同时查询 name 和 description）
+     */
+    private String searchText;
 
     /**
      * 队伍名称
      */
     private String name;
+
+    /**
+     * 队伍描述
+     */
+    private String description;
 
     /**
      * 最大人数

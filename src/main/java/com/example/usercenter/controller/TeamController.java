@@ -13,6 +13,7 @@ import com.example.usercenter.model.dto.TeamQuery;
 import com.example.usercenter.model.request.TeamAddRequest;
 import com.example.usercenter.model.request.UserLoginRequest;
 import com.example.usercenter.model.request.UserRegisterRequest;
+import com.example.usercenter.model.vo.TeamUserVO;
 import com.example.usercenter.service.TeamService;
 import com.example.usercenter.service.UserService;
 import com.fasterxml.jackson.databind.ser.Serializers;
@@ -96,15 +97,20 @@ public class TeamController {
         return ResultUtils.success(team);
     }
 
+    /**
+     * 查询队伍列表
+     * @param teamQuery
+     * @param request
+     * @return
+     */
     @GetMapping("/list")
-    public BaseResponse<List<Team>> listTeams(TeamQuery teamQuery) {
+    public BaseResponse<List<TeamUserVO>> listTeams(TeamQuery teamQuery, HttpServletRequest request) {
         if (teamQuery == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Team team = new Team();
-        BeanUtils.copyProperties(teamQuery, team);
-        QueryWrapper<Team> queryWrapper = new QueryWrapper<>();
-        List<Team> teamList = teamService.list(queryWrapper);
+        // 判断是否是管理员
+        boolean isAdmin = userService.isAdmin(request);
+        List<TeamUserVO> teamList = teamService.listTeams(teamQuery, isAdmin);
         return ResultUtils.success(teamList);
     }
 
