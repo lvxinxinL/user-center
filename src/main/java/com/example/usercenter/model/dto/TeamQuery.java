@@ -1,9 +1,9 @@
 package com.example.usercenter.model.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.example.usercenter.common.PageRequest;
 import lombok.Data;
+
+import java.util.List;
 
 
 /**
@@ -19,6 +19,11 @@ public class TeamQuery extends PageRequest {
      * id
      */
     private Long id;
+
+    /**
+     * idList
+     */
+    private List<Long> idList;
 
     /**
      * 查询关键词（同时查询 name 和 description）

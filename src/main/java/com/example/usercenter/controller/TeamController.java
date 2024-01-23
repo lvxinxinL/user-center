@@ -11,6 +11,7 @@ import com.example.usercenter.model.domain.Team;
 import com.example.usercenter.model.domain.User;
 import com.example.usercenter.model.dto.TeamQuery;
 import com.example.usercenter.model.request.TeamAddRequest;
+import com.example.usercenter.model.request.TeamUpdateRequest;
 import com.example.usercenter.model.request.UserLoginRequest;
 import com.example.usercenter.model.request.UserRegisterRequest;
 import com.example.usercenter.model.vo.TeamUserVO;
@@ -74,11 +75,12 @@ public class TeamController {
     }
 
     @PostMapping("/update")
-    public BaseResponse<Boolean> updateTeam(@RequestBody Team team) {
-        if (team == null) {
+    public BaseResponse<Boolean> updateTeam(@RequestBody TeamUpdateRequest teamUpdateRequest, HttpServletRequest request) {
+        if (teamUpdateRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean result = teamService.updateById(team);
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.updateTeam(teamUpdateRequest, loginUser);
         if (!result) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新失败");
         }

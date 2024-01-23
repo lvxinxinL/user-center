@@ -9,8 +9,8 @@ package com.example.usercenter.constant.enums;
 public enum TeamStatusEnum {
 
     PUBLIC(0, "公开"),
-    PRIVATE(0, "私有"),
-    SECRET(0, "加密");
+    PRIVATE(1, "私有"),
+    SECRET(2, "加密");
 
     private int value;
 
