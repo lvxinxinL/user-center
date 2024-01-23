@@ -10,10 +10,7 @@ import com.example.usercenter.exception.BusinessException;
 import com.example.usercenter.model.domain.Team;
 import com.example.usercenter.model.domain.User;
 import com.example.usercenter.model.dto.TeamQuery;
-import com.example.usercenter.model.request.TeamAddRequest;
-import com.example.usercenter.model.request.TeamUpdateRequest;
-import com.example.usercenter.model.request.UserLoginRequest;
-import com.example.usercenter.model.request.UserRegisterRequest;
+import com.example.usercenter.model.request.*;
 import com.example.usercenter.model.vo.TeamUserVO;
 import com.example.usercenter.service.TeamService;
 import com.example.usercenter.service.UserService;
@@ -127,4 +124,13 @@ public class TeamController {
         return ResultUtils.success(resultPage);
     }
 
+    @PostMapping("/join")
+    public BaseResponse<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest,HttpServletRequest request) {
+        if (teamJoinRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.joinTeam(teamJoinRequest, loginUser);
+        return ResultUtils.success(result);
+    }
 }
