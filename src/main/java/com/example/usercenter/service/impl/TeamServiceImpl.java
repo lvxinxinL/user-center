@@ -87,7 +87,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         }
         //   6. 超时时间 > 当前时间
         Date expireTime = team.getExpireTime();
-        if (new Date().after(expireTime)) {
+        if (expireTime != null && new Date().after(expireTime)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "超时时间已到，队伍失效");
         }
         //   7. 校验用户最多创建 5 个队伍
@@ -133,6 +133,10 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             Long teamID = teamQuery.getId();
             if (teamID != null && teamID > 0) {
                 queryWrapper.eq("id", teamID);
+            }
+            List<Long> idList = teamQuery.getIdList();
+            if (CollectionUtils.isNotEmpty(idList)) {
+                queryWrapper.in("id", idList);
             }
             // 可以通过某个 关键词 searchText 同时对名称和队伍描述查询
             String searchText = teamQuery.getSearchText();
