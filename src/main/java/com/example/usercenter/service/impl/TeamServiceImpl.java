@@ -11,6 +11,7 @@ import com.example.usercenter.model.domain.User;
 import com.example.usercenter.model.domain.UserTeam;
 import com.example.usercenter.model.dto.TeamQuery;
 import com.example.usercenter.model.request.TeamJoinRequest;
+import com.example.usercenter.model.request.TeamQuitRequest;
 import com.example.usercenter.model.request.TeamUpdateRequest;
 import com.example.usercenter.model.vo.TeamUserVO;
 import com.example.usercenter.model.vo.UserVO;
@@ -18,11 +19,9 @@ import com.example.usercenter.service.TeamService;
 import com.example.usercenter.mapper.TeamMapper;
 import com.example.usercenter.service.UserService;
 import com.example.usercenter.service.UserTeamService;
-import io.swagger.models.auth.In;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,9 +42,6 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
     @Resource
     private UserService userService;
-
-//    @Resource
-//    private TeamService teamService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -128,6 +124,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
      * @return 队伍结果列表
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<TeamUserVO> listTeams(TeamQuery teamQuery, boolean isAdmin) {
         // 组合查询条件
         QueryWrapper<Team> queryWrapper = new QueryWrapper<>();
@@ -201,6 +198,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser) {
         if (teamUpdateRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -228,6 +226,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean joinTeam(TeamJoinRequest teamJoinRequest, User loginUser) {
         if (teamJoinRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -292,6 +291,62 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         userTeam.setJoinTime(new Date());
         return userTeamService.save(userTeam);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser) {
+        // 1. 校验请求参数
+        if (teamQuitRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 2. 校验队伍是否存在
+        Long teamId = teamQuitRequest.getTeamId();
+        Team team = this.getById(teamId);
+        if (team == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR,"队伍不存在");
+        }
+        // 3. 校验该用户是否已加入队伍
+        Long userId = loginUser.getId();
+        QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("team_id", teamId);
+        queryWrapper.eq("user_id", userId);
+        long count = userTeamService.count(queryWrapper);
+        if (count == 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户未加入该队伍");
+        }
+        // 4. 队伍人数
+        QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
+        userTeamQueryWrapper.eq("team_id", teamId);
+        long hasJoinUserNum = userTeamService.count(userTeamQueryWrapper);
+        if (hasJoinUserNum == 1) {
+            // 4.1 只剩一人，队伍解散
+            this.removeById(teamId);
+        } else {
+            // 4.2 还有其他人
+            if (Objects.equals(team.getUserId(), userId)) {
+                // 4.2.1 队长退出：将队长权限转移给最早加入队伍的用户（id 最小的两条数据）
+                userTeamQueryWrapper = new QueryWrapper<>();
+                userTeamQueryWrapper.eq("team_id",teamId);
+                userTeamQueryWrapper.last("order by id asc limit 2");
+                List<UserTeam> userTeamList = userTeamService.list(userTeamQueryWrapper);
+                if (CollectionUtils.isEmpty(userTeamList) || userTeamList.size() < 2) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+                }
+                // 转给最早加入的
+                Team updateTeam = new Team();
+                updateTeam.setId(teamId);
+                updateTeam.setUserId(userTeamList.get(1).getUserId());
+                boolean result = this.updateById(updateTeam);
+                if (!result) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "队伍队长更新失败");
+                }
+            }
+            // 4.2.2 普通队员退出：直接退出
+        }
+        // 移除关系
+        return userTeamService.remove(queryWrapper);
+    }
+
 }
 
 
