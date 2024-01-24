@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 
 /**
@@ -197,6 +198,22 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         return teamUserVOList;
     }
 
+    /**
+     * 根据 id 获取队伍（判断队伍是否存在）
+     * @param id 队伍 id
+     * @return
+     */
+    public Team getTeamById(Long id) {
+        if (id == null || id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        Team team = this.getById(id);
+        if (team == null) {
+            throw new BusinessException(ErrorCode.NULL_ERROR, "队伍不存在");
+        }
+        return team;
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateTeam(TeamUpdateRequest teamUpdateRequest, User loginUser) {
@@ -204,10 +221,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         Long id = teamUpdateRequest.getId();
-        if (id == null || id <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Team oldTeam = this.getById(id);
+        Team oldTeam = this.getTeamById(id);
         if (oldTeam == null) {
             throw new BusinessException(ErrorCode.NULL_ERROR, "队伍不存在");
         }
@@ -242,10 +256,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
         // 2. 队伍必须存在，只能加入未满、未过期的队伍
         Long teamId = teamJoinRequest.getTeamId();
-        Team team = this.getById(teamId);
-        if (team == null) {
-            throw new BusinessException(ErrorCode.NULL_ERROR, "队伍不存在");
-        }
+        Team team = this.getTeamById(teamId);
         userTeamQueryWrapper = new QueryWrapper<>();
         userTeamQueryWrapper.eq("team_id", teamId);
         long teamHasJoinNum = userTeamService.count(userTeamQueryWrapper);
@@ -301,10 +312,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         }
         // 2. 校验队伍是否存在
         Long teamId = teamQuitRequest.getTeamId();
-        Team team = this.getById(teamId);
-        if (team == null) {
-            throw new BusinessException(ErrorCode.NULL_ERROR,"队伍不存在");
-        }
+        Team team = this.getTeamById(teamId);
         // 3. 校验该用户是否已加入队伍
         Long userId = loginUser.getId();
         QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
@@ -347,6 +355,30 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         return userTeamService.remove(queryWrapper);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteTeam(long teamId, User loginUser) {
+        // 1. 校验请求参数
+        if (teamId < 1) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 2. 校验队伍是否存在
+        Team team = this.getTeamById(teamId);
+        // 3. 校验该用户是否是队长
+        Long userId = loginUser.getId();
+        if (!team.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.NO_AUTH,"无访问权限");
+        }
+        // 4. 移除用户 - 队伍关系表中所有与该队伍关联的关系
+        QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("team_id", teamId);
+        boolean result = userTeamService.remove(queryWrapper);
+        if (!result) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"解散队伍失败");
+        }
+        // 5. 解散队伍
+        return this.removeById(teamId);
+    }
 }
 
 

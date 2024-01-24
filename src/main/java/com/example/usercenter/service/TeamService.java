@@ -9,6 +9,7 @@ import com.example.usercenter.model.request.TeamQuitRequest;
 import com.example.usercenter.model.request.TeamUpdateRequest;
 import com.example.usercenter.model.vo.TeamUserVO;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -58,4 +59,6 @@ public interface TeamService extends IService<Team> {
      * @return
      */
     boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser);
+
+    boolean deleteTeam(long teamId, User loginUser);
 }
