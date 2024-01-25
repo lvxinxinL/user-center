@@ -3,6 +3,7 @@ package com.example.usercenter.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.usercenter.common.BaseResponse;
+import com.example.usercenter.common.DeleteRequest;
 import com.example.usercenter.common.ErrorCode;
 import com.example.usercenter.common.ResultUtils;
 import com.example.usercenter.exception.BusinessException;
@@ -60,11 +61,12 @@ public class TeamController {
     }
 
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteTeam(@RequestParam long teamId, HttpServletRequest request) {
-        if (teamId <= 0) {
+    public BaseResponse<Boolean> deleteTeam(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+        if (deleteRequest == null || deleteRequest.getTeamId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User loginUser = userService.getLoginUser(request);
+        long teamId = deleteRequest.getTeamId();
         boolean result = teamService.deleteTeam(teamId, loginUser);
         if (!result) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除失败");

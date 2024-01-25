@@ -90,4 +90,6 @@ public interface UserService extends IService<User> {
      * @return 是否为管理员
      */
     boolean isAdmin(User loginUser);
+
+    List<User> matchUsers(long num, User loginUser);
 }
