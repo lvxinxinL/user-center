@@ -155,6 +155,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             if (maxNum != null && maxNum > 0) {
                 queryWrapper.eq("max_num", maxNum);
             }
+            // TODO 有 bug，不通用，加上 userId 就变成查该用户所创建的队伍了
             Long userId = teamQuery.getUserId();
             if (userId != null && userId >= 0) {
                 queryWrapper.eq("user_id", userId);
@@ -315,7 +316,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 2. 校验队伍是否存在
-        Long teamId = teamQuitRequest.getTeamId();
+        Long teamId = teamQuitRequest.getId();
         Team team = this.getTeamById(teamId);
         // 3. 校验该用户是否已加入队伍
         Long userId = loginUser.getId();

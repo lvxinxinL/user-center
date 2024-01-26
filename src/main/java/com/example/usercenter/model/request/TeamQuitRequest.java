@@ -14,5 +14,5 @@ public class TeamQuitRequest implements Serializable {
     /**
      * 队伍 id
      */
-    private Long teamId;
+    private Long id;
 }

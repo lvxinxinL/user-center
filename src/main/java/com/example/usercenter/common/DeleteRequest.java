@@ -15,6 +15,6 @@ public class DeleteRequest implements Serializable {
 
     private static final long serialVersionUID = 1395844225639844641L;
 
-    private long teamId;
+    private long id;
 
 }

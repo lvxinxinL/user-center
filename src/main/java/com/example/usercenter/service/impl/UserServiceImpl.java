@@ -333,6 +333,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 .collect(Collectors.toList());
         // 原本顺序的 userId 列表
         List<Long> userIdList = topUserPairList.stream().map(pair -> pair.getKey().getId()).collect(Collectors.toList());
+        // 查询匹配用户列表的详细信息（之前只查了 id tags 两个字段的值）
         QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
         userQueryWrapper.in("id", userIdList);
         // 1, 3, 2
