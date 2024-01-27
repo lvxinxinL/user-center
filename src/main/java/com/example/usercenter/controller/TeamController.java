@@ -21,6 +21,7 @@ import com.example.usercenter.service.UserService;
 import com.example.usercenter.service.UserTeamService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.transaction.jta.UserTransactionAdapter;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -132,6 +133,15 @@ public class TeamController {
                 team.setHasJoin(hasJoin);
             });
         } catch (Exception e) { }
+        // 3. 查询加入队伍的用户数
+        QueryWrapper<UserTeam> userTeamJoinNumQW = new QueryWrapper<>();
+        userTeamJoinNumQW.in("team_id", teamIdList);
+        List<UserTeam> userTeamList = userTeamService.list(userTeamJoinNumQW);
+        // 队伍 id => 加入该队伍的用户列表
+        Map<Long, List<UserTeam>> teamIdUserTeamList = userTeamList.stream().collect(Collectors.groupingBy(UserTeam::getTeamId));
+        teamList.forEach(team ->  {
+            team.setHasJoinNum(teamIdUserTeamList.getOrDefault(team.getId(),new ArrayList<>()).size());
+        });
         return ResultUtils.success(teamList);
     }
 
@@ -179,6 +189,7 @@ public class TeamController {
         }
         User loginUser = userService.getLoginUser(request);
         teamQuery.setUserId(loginUser.getId());
+        // TODO 没有展示加密的队伍
         List<TeamUserVO> teamList = teamService.listTeams(teamQuery, true);
         return ResultUtils.success(teamList);
     }

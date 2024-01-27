@@ -1,7 +1,9 @@
 package com.example.usercenter.service.impl;
+
 import java.util.Date;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.usercenter.common.ErrorCode;
 import com.example.usercenter.constant.enums.TeamStatusEnum;
@@ -19,30 +21,41 @@ import com.example.usercenter.service.TeamService;
 import com.example.usercenter.mapper.TeamMapper;
 import com.example.usercenter.service.UserService;
 import com.example.usercenter.service.UserTeamService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static com.example.usercenter.constant.enums.RedisConstant.*;
 
 /**
-* @author 20890
-* @description 针对表【team(队伍)】的数据库操作Service实现
-* @createDate 2024-01-22 18:27:55
-*/
+ * @author 20890
+ * @description 针对表【team(队伍)】的数据库操作Service实现
+ * @createDate 2024-01-22 18:27:55
+ */
 @Service
+@Slf4j
 public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
-    implements TeamService{
+        implements TeamService {
 
     @Resource
     private UserTeamService userTeamService;
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private RedissonClient redissonClient;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -91,7 +104,6 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "超时时间已到，队伍失效");
         }
         //   7. 校验用户最多创建 5 个队伍
-        // TODO 有 bug，用户可能同时创建很多个队伍
         QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_id", userId);
         long hasTeamNum = userTeamService.count(queryWrapper);
@@ -104,7 +116,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         boolean result = this.save(team);
         Long teamId = team.getId();
         if (!result || teamId == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"创建队伍失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建队伍失败");
         }
         // 5. 插入用户  => 队伍关系到关系表
         UserTeam userTeam = new UserTeam();
@@ -113,15 +125,16 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         userTeam.setJoinTime(new Date());
         result = userTeamService.save(userTeam);
         if (!result) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"创建队伍失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建队伍失败");
         }
         return teamId;
     }
 
     /**
      * 查询队伍列表
+     *
      * @param teamQuery 查询条件封装类
-     * @param isAdmin 是否是管理员
+     * @param isAdmin   是否是管理员
      * @return 队伍结果列表
      */
     @Override
@@ -166,6 +179,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             if (teamStatus == null) {
                 teamStatus = TeamStatusEnum.PUBLIC;
             }
+            // TODO 自己可以查看自己的私有房间
             if (!isAdmin && teamStatus.equals(TeamStatusEnum.PRIVATE)) {
                 throw new BusinessException(ErrorCode.NO_AUTH);
             }
@@ -205,6 +219,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
 
     /**
      * 根据 id 获取队伍（判断队伍是否存在）
+     *
      * @param id 队伍 id
      * @return
      */
@@ -237,7 +252,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         // 如果队伍状态改为加密，必须要加上密码
         TeamStatusEnum teamEnum = TeamStatusEnum.getTeamEnumByValue(teamUpdateRequest.getStatus());
         if (teamEnum.equals(TeamStatusEnum.SECRET) && StringUtils.isBlank(teamUpdateRequest.getPassword())) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"加密队伍必须设置密码");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "加密队伍必须设置密码");
         }
         Team updateTeam = new Team();
         BeanUtils.copyProperties(teamUpdateRequest, updateTeam);
@@ -251,61 +266,77 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 1. 用户最多创建和加入 5 个队伍
-        Long userId = loginUser.getId();
-        QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
-        userTeamQueryWrapper.eq("user_id", userId);
-        long hasJoinNum = userTeamService.count(userTeamQueryWrapper);
-        if (hasJoinNum >= 5) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户最多创建和加入 5 个队伍");
-        }
+        RLock lock = redissonClient.getLock(JOIN_TEAM_USER_LOCK);
+        try {
+            while (true) {
+                // 获取到锁执行业务
+                if (lock.tryLock(0,-1, TimeUnit.MILLISECONDS)) {
+                    log.info("get redisson lock" + Thread.currentThread().getId());
+                    Long userId = loginUser.getId();
+                    QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
+                    userTeamQueryWrapper.eq("user_id", userId);
+                    long hasJoinNum = userTeamService.count(userTeamQueryWrapper);
+                    if (hasJoinNum >= 5) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户最多创建和加入 5 个队伍");
+                    }
 
-        // 2. 队伍必须存在，只能加入未满、未过期的队伍
-        Long teamId = teamJoinRequest.getTeamId();
-        Team team = this.getTeamById(teamId);
-        userTeamQueryWrapper = new QueryWrapper<>();
-        userTeamQueryWrapper.eq("team_id", teamId);
-        long teamHasJoinNum = userTeamService.count(userTeamQueryWrapper);
-        if (teamHasJoinNum >= team.getMaxNum()) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍人数已满");
-        }
-        Date expireTime = team.getExpireTime();
-        if (expireTime != null && expireTime.before(new Date())) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"队伍已过期");
-        }
+                    // 2. 队伍必须存在，只能加入未满、未过期的队伍
+                    Long teamId = teamJoinRequest.getTeamId();
+                    Team team = this.getTeamById(teamId);
+                    userTeamQueryWrapper = new QueryWrapper<>();
+                    userTeamQueryWrapper.eq("team_id", teamId);
+                    long teamHasJoinNum = userTeamService.count(userTeamQueryWrapper);
+                    if (teamHasJoinNum >= team.getMaxNum()) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍人数已满");
+                    }
+                    Date expireTime = team.getExpireTime();
+                    if (expireTime != null && expireTime.before(new Date())) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "队伍已过期");
+                    }
 
-        // 3. 不能加入自己的队伍，不能重复加入已加入的队伍（幂等性）
+                    // 3. 不能加入自己的队伍，不能重复加入已加入的队伍（幂等性）
 //        if (team.getUserId() == userId) {
 //            throw new BusinessException(ErrorCode.PARAMS_ERROR,"不能加入自己创建的队伍");
 //        }
-        userTeamQueryWrapper = new QueryWrapper<>();
-        userTeamQueryWrapper.eq("team_id", teamId);
-        userTeamQueryWrapper.eq("user_id", userId);
-        long alreadyJoinNum = userTeamService.count(userTeamQueryWrapper);
-        if (alreadyJoinNum > 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户已加入该队伍");
-        }
+                    userTeamQueryWrapper = new QueryWrapper<>();
+                    userTeamQueryWrapper.eq("team_id", teamId);
+                    userTeamQueryWrapper.eq("user_id", userId);
+                    long alreadyJoinNum = userTeamService.count(userTeamQueryWrapper);
+                    if (alreadyJoinNum > 0) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户已加入该队伍");
+                    }
 
-        // 4. 禁止加入私有的队伍
-        Integer status = team.getStatus();
-        TeamStatusEnum teamStatusEnum = TeamStatusEnum.getTeamEnumByValue(status);
-        if (teamStatusEnum.equals(TeamStatusEnum.PRIVATE)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "禁止加入私有的队伍");
-        }
+                    // 4. 禁止加入私有的队伍
+                    Integer status = team.getStatus();
+                    TeamStatusEnum teamStatusEnum = TeamStatusEnum.getTeamEnumByValue(status);
+                    if (teamStatusEnum.equals(TeamStatusEnum.PRIVATE)) {
+                        throw new BusinessException(ErrorCode.PARAMS_ERROR, "禁止加入私有的队伍");
+                    }
 
-        // 5. 如果加入的队伍是加密的，必须密码匹配才可以
-        String password = teamJoinRequest.getPassword();
-        if (teamStatusEnum.equals(TeamStatusEnum.SECRET)) {
-            if (StringUtils.isBlank(password) || !password.equals(team.getPassword())) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
+                    // 5. 如果加入的队伍是加密的，必须密码匹配才可以
+                    String password = teamJoinRequest.getPassword();
+                    if (teamStatusEnum.equals(TeamStatusEnum.SECRET)) {
+                        if (StringUtils.isBlank(password) || !password.equals(team.getPassword())) {
+                            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
+                        }
+                    }
+
+                    // 6. 新增队伍 - 用户关联信息
+                    UserTeam userTeam = new UserTeam();
+                    userTeam.setUserId(userId);
+                    userTeam.setTeamId(teamId);
+                    userTeam.setJoinTime(new Date());
+                    return userTeamService.save(userTeam);
+                }
             }
+        } catch (InterruptedException e) {
+            log.error("redisson join team error", e);
+            return false;
+        } finally {
+            log.info("redisson unlock" + Thread.currentThread().getId());
+            lock.unlock();
         }
 
-        // 6. 新增队伍 - 用户关联信息
-        UserTeam userTeam = new UserTeam();
-        userTeam.setUserId(userId);
-        userTeam.setTeamId(teamId);
-        userTeam.setJoinTime(new Date());
-        return userTeamService.save(userTeam);
     }
 
     @Override
@@ -325,7 +356,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         queryWrapper.eq("user_id", userId);
         long count = userTeamService.count(queryWrapper);
         if (count == 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户未加入该队伍");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户未加入该队伍");
         }
         // 4. 队伍人数
         QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
@@ -339,7 +370,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             if (Objects.equals(team.getUserId(), userId)) {
                 // 4.2.1 队长退出：将队长权限转移给最早加入队伍的用户（id 最小的两条数据）
                 userTeamQueryWrapper = new QueryWrapper<>();
-                userTeamQueryWrapper.eq("team_id",teamId);
+                userTeamQueryWrapper.eq("team_id", teamId);
                 userTeamQueryWrapper.last("order by id asc limit 2");
                 List<UserTeam> userTeamList = userTeamService.list(userTeamQueryWrapper);
                 if (CollectionUtils.isEmpty(userTeamList) || userTeamList.size() < 2) {
@@ -372,14 +403,14 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         // 3. 校验该用户是否是队长
         Long userId = loginUser.getId();
         if (!team.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.NO_AUTH,"无访问权限");
+            throw new BusinessException(ErrorCode.NO_AUTH, "无访问权限");
         }
         // 4. 移除用户 - 队伍关系表中所有与该队伍关联的关系
         QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("team_id", teamId);
         boolean result = userTeamService.remove(queryWrapper);
         if (!result) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"解散队伍失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "解散队伍失败");
         }
         // 5. 解散队伍
         return this.removeById(teamId);

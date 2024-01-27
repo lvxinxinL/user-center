@@ -17,6 +17,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.example.usercenter.constant.enums.RedisConstant.PRE_CACHE_USER_LOCK;
+import static com.example.usercenter.constant.enums.RedisConstant.USER_RECOMMEND_KEY_PREFIX;
+
 /**
  * 缓存预热定时任务
  * @author 乐小鑫
@@ -39,15 +42,15 @@ public class PreCacheUser {
 
     @Scheduled(cron = "0 59 21 ? * * ")// 每天 21:57 执行定时任务进行用户数据缓存预热
     public void doPreCacheUser() {
-        RLock lock = redissonClient.getLock("langhua:precachejob:doprecache:lock");
+        RLock lock = redissonClient.getLock(PRE_CACHE_USER_LOCK);
         try {
-            if (lock.tryLock(0,30000L,TimeUnit.MILLISECONDS)) {
+            if (lock.tryLock(0,-1,TimeUnit.MILLISECONDS)) {
                 log.info("get redisson lock" + Thread.currentThread().getId());
                 // 查出用户存到 Redis 中
                 for (Long userId : mainUserList) {
                     QueryWrapper<User> queryWrapper = new QueryWrapper<>();
                     Page<User> userPage = userService.page(new Page<>(1, 20), queryWrapper);// 查询所有用户
-                    String key = String.format("langhua:user:recommend:%s", userId);
+                    String key = String.format(USER_RECOMMEND_KEY_PREFIX, userId);
                     ValueOperations valueOperations = redisTemplate.opsForValue();
                     // 将查询出来的数据写入缓存
                     try {
