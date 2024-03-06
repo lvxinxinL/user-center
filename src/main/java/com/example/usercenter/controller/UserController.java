@@ -36,7 +36,7 @@ import static com.example.usercenter.constant.UserConstant.USER_LOGIN_STATE;
 @RestController
 @RequestMapping("/user")
 @Slf4j
-@CrossOrigin(origins = { "http://localhost:5173/" })
+//@CrossOrigin(origins = { "http://localhost:5173/" })
 public class UserController {
 
     @Resource

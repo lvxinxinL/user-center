@@ -9,9 +9,9 @@ spring:
   redis:
     host: 127.0.0.1
     port: 6379
-    password: root@csu
+#    password: root@csu
     database: 1
-  # session失效时间（minute）
+  # Session 过期时间（单位为秒），这里设置的是24小时
   session:
     timeout: 86400
     store-type: redis
@@ -30,6 +30,8 @@ server:
     session:
       cookie:
         domain: localhost
+        same-site: none
+        secure: true
 
 mybatis-plus:
 #  configuration:
